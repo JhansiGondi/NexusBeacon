@@ -3,10 +3,6 @@
     "framework": null,
     "builds": [
         {
-            "src": "/api/index.php",
-            "use": "vercel-php@0.6.0"
-        },
-        {
             "src": "/public/index.php",
             "use": "vercel-php@0.6.0"
         }
@@ -23,7 +19,7 @@
     ],
     "env": {
         "APP_ENV": "production",
-        "APP_DEBUG": "true",
+        "APP_DEBUG": "false",
         "APP_URL": "https://${VERCEL_URL}",
         "APP_CONFIG_CACHE": "/tmp/config.php",
         "APP_EVENTS_CACHE": "/tmp/events.php",
