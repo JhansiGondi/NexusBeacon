@@ -11,8 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
+
+// Force HTTPS in production
+if (app()->environment('production')) {
+    \Illuminate\Support\Facades\URL::forceScheme('https');
+}
+
+return $app;
