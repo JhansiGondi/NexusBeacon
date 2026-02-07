@@ -20,10 +20,12 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     libzip-dev \
+    libsqlite3-dev \
+    sqlite3 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP Extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
@@ -39,27 +41,27 @@ WORKDIR /var/www/html
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy Composer Files First (for caching)
-COPY composer.json composer.lock ./
-
-# Install Dependencies (without scripts/autoloader first)
-RUN composer install --no-interaction --no-plugins --no-scripts --no-autoloader --prefer-dist
-
-# Copy Application Code
+# Copy Project Files
 COPY . .
 
 # Copy Frontend Build from Stage 1
 COPY --from=frontend /app/public/build public/build
 
-# Finish Composer Setup
+# Install Dependencies
+RUN composer install --no-interaction --no-plugins --no-scripts --no-autoloader --prefer-dist
 RUN composer dump-autoload --optimize
 
-# Set Permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
-RUN chmod -R 775 storage bootstrap/cache
+# Ensure database directory exists and is writable
+RUN mkdir -p /var/www/html/database && \
+    touch /var/www/html/database/database.sqlite && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database && \
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+
+# Make entrypoint executable
+RUN chmod +x docker-entrypoint.sh
 
 # Expose Port 80
 EXPOSE 80
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start with entrypoint script
+ENTRYPOINT ["./docker-entrypoint.sh"]
