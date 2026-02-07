@@ -10,6 +10,13 @@ RUN npm run build
 # Stage 2: Serve Application with PHP & Apache
 FROM php:8.2-apache
 
+# Set Default Environment Variables (Safer Defaults)
+ENV CACHE_DRIVER=file
+ENV SESSION_DRIVER=file
+ENV QUEUE_CONNECTION=sync
+ENV DB_CONNECTION=sqlite
+ENV DB_DATABASE=/var/www/html/database/database.sqlite
+
 # Install System Dependencies
 RUN apt-get update && apt-get install -y \
     git \
@@ -24,7 +31,7 @@ RUN apt-get update && apt-get install -y \
     sqlite3 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP Extensions
+# Install Docker PHP Extensions
 RUN docker-php-ext-install pdo_mysql pdo_sqlite mbstring exif pcntl bcmath gd zip
 
 # Enable Apache mod_rewrite
@@ -52,10 +59,11 @@ RUN composer install --no-interaction --no-plugins --no-scripts --no-autoloader 
 RUN composer dump-autoload --optimize
 
 # Ensure database directory exists and is writable
-RUN mkdir -p /var/www/html/database && \
-    touch /var/www/html/database/database.sqlite && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database && \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+RUN mkdir -p /var/www/html/database
+# Create SQLite DB if not exists (so install doesn't fail permissions initially)
+RUN touch /var/www/html/database/database.sqlite
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
+RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/database
 
 # Make entrypoint executable
 RUN chmod +x docker-entrypoint.sh
